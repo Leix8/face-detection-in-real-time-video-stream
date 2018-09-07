@@ -2,9 +2,9 @@
 this application enables real time human face detections build for Nvidia Jetson TX2 board. 
 
 Pre-requisite:
-**Python (Python 3.4 recomeended)*
-**Opencv* 
-**Dlib*
+* Python (Python 3.4 recomeended)*
+* Opencv* 
+* Dlib*
 
 ## Intro:
 Today when we want to do face detection, we mainly have two options to build on:
