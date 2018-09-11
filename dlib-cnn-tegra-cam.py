@@ -5,6 +5,7 @@ import argparse
 import cv2
 import dlib
 import time
+import numpy as np
 
 WINDOW_NAME = 'Gemalto'
 
@@ -77,8 +78,35 @@ def open_window(width, height):
     cv2.moveWindow(WINDOW_NAME, 0, 0)
     cv2.setWindowTitle(WINDOW_NAME, 'Gemalto-Real time human face detection')
 
+def recognizor(obj_vector):
+    result={}
+    namelist=os.listdir(path_data)
+#    print(namelist)
+    for name in namelist:
+        data=np.load(path_data+name)
+ #       print(type(obj_vector),type(data))
+#        print(np.shape(np.array(obj_vector)),np.shape(data))
+        result[name.split(".")[0]]=np.sqrt(np.sum(np.square(np.array(data)-np.array(obj_vector))))
+     
+    return(result)
 
-def read_cam(cap):
+def find_match(dist):
+    distance=100
+    result="404 not found"
+    for k,d in dist.items():
+        if d<distance:
+            distance=d
+            result=k
+        if distance>0.8:
+            result="not found"
+    return (result)
+
+
+
+
+
+
+def video_main(cap):
 #show some basic information
     show_help = True
     full_scrn = False
@@ -91,9 +119,8 @@ def read_cam(cap):
     time_fbf,time_faf=0,0
     
 #set path for save detections
-    path=os.getcwd()+"/DetectionImages"
-    if not os.path.exists(path):
-        os.makedirs(path)
+
+
 
 #keep reading frames and do detection
     while True:
@@ -111,7 +138,7 @@ def read_cam(cap):
 
 #take subframes, to observe the time efficiency
 #        if (frame_cnt%2)==1:
-        if True:
+        if True:    #turn off subframe
             time_bf=time_af
             faces=detector(img,1)
             time_af=time.time()
@@ -132,8 +159,23 @@ def read_cam(cap):
                     
                     shape=sp(img_org,face.rect)
                     face_descriptor =facerec.compute_face_descriptor(img,shape)
-                    print("face descriptor: ", face_descriptor)
+#                    print("face descriptor: ", face_descriptor)
+                    dist=recognizor(face_descriptor)
+                    print(dist)
+                    result=find_match(dist)
+                    print(result)
+                    cv2.putText(img_org,result,(int(l*scale_x),int(t*scale_y)),font,2.0,(255,0,0),3)
         
+        
+        
+        
+        
+        
+        
+        
+        
+        
+#showing help and set key         
         if show_help:
             cv2.putText(img_org, help_text, (10, 30), font,
                     2.0, (180,180,180), 4, cv2.LINE_AA)
@@ -159,6 +201,8 @@ def read_cam(cap):
         print("frame time: ", time_faf-time_fbf)
         print("******************************")
         
+        
+
 
 def main():
     args = parse_args()
@@ -169,10 +213,17 @@ def main():
     sp=dlib.shape_predictor(os.getcwd()+"/shape_predictor_68_face_landmarks.dat")
     facerec=dlib.face_recognition_model_v1(os.getcwd()+"/dlib_face_recognition_resnet_model_v1.dat")
     detector=dlib.cnn_face_detection_model_v1(os.getcwd()+"/mmod_human_face_detector.dat") 
+    
+    global path,path_data
+    path=os.getcwd()+"/DetectionImages"
+    path_data=os.getcwd()+"/data/feature_vectors/"
+    if not os.path.exists(path):
+        os.makedirs(path)
 #    detector=dlib.get_frontal_face_detector()
 #    global face_cascade
 #    face_cascade=cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
+ 
     if args.use_rtsp:
         cap = open_cam_rtsp(args.rtsp_uri,
                             args.image_width,
@@ -191,7 +242,7 @@ def main():
         sys.exit('Failed to open camera!')
 
     open_window(args.image_width, args.image_height)
-    read_cam(cap)
+    video_main(cap)
 
     cap.release()
     cv2.destroyAllWindows()
